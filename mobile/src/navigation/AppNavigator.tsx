@@ -1,20 +1,20 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
+import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
-
-const Stack = createNativeStackNavigator();
+import SplashScreen from '../screens/SplashScreen';
 
 export default function AppNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* We'll start with Auth flow. Once authenticated, replace with MainTabs. */}
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-        <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-      </Stack.Navigator>
+      {isAuthenticated ? <MainTabNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }
