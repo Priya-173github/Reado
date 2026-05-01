@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "reado_dev"
     POSTGRES_PORT: str = "5432"
 
+    SECRET_KEY: str = "supersecretkey_change_in_production"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    
+    REDIS_URL: str = "redis://localhost:6379/0"
+    
+    SENDGRID_API_KEY: str | None = None
+    SENDGRID_FROM_EMAIL: str = "noreply@reado.com"
+
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         if self.DATABASE_URL:

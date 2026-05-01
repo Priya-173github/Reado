@@ -1,2 +1,3 @@
 Access databse : docker exec -it reado-db psql -U priya -d reado_dev
 
+API docs : poetry run uvicorn app.main:app --reload --port 8000
