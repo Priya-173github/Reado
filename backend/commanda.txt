@@ -1,0 +1,2 @@
+Access databse : docker exec -it reado-db psql -U priya -d reado_dev
+
