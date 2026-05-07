@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (accessToken && refreshToken) {
           // Try to fetch user profile with existing token
-          const response = await api.get('/auth/me');
+          const response = await api.get('/users/me');
           setUser(response.data);
         }
       } catch (error) {
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('refresh_token', refresh_token);
 
     // Fetch user profile
-    const userResponse = await api.get('/auth/me');
+    const userResponse = await api.get('/users/me');
     setUser(userResponse.data);
   };
 
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('refresh_token', refresh_token);
 
     // Fetch user profile
-    const userResponse = await api.get('/auth/me');
+    const userResponse = await api.get('/users/me');
     setUser(userResponse.data);
   };
 
