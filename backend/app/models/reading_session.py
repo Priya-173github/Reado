@@ -1,20 +1,24 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 class ReadingSession(Base):
     __tablename__ = "reading_sessions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    book_title = Column(String, index=True, nullable=False)
-    book_google_id = Column(String, index=True) # ID from Google Books API
-    duration_minutes = Column(Integer, nullable=False, default=0)
-    pages_read = Column(Integer, default=0)
-    start_time = Column(DateTime(timezone=True), default=func.now())
-    end_time = Column(DateTime(timezone=True))
+    book_id = Column(UUID(as_uuid=True), ForeignKey("books.id"), nullable=True)
+    pages_read = Column(Integer, default=0, nullable=False)
+    duration_seconds = Column(Integer, default=0, nullable=False)
+    notes = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+    ended_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", backref="reading_sessions")
+    book = relationship("Book", backref="reading_sessions")

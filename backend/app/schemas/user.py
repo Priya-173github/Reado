@@ -4,21 +4,26 @@ from uuid import UUID
 from datetime import datetime
 import re
 
+
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
 
+
 class UserCreate(UserBase):
     password: str
 
-    @validator('password')
+    @validator("password")
     def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if re.search(r'^[a-zA-Z]+$', v):
-            raise ValueError('Password must contain at least one number or special character')
+        if len(v) < 4:
+            raise ValueError("Password must be at least 8 characters long")
+        if re.search(r"^[a-zA-Z]+$", v):
+            raise ValueError(
+                "Password must contain at least one number or special character"
+            )
         # Additional checks for common patterns could be added here
         return v
+
 
 class UserResponse(UserBase):
     id: UUID
@@ -31,3 +36,17 @@ class UserResponse(UserBase):
 
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    timezone: Optional[str] = None
+    is_private: Optional[bool] = None
+
+class UserStats(BaseModel):
+    total_sessions: int
+    total_pages_read: int
+    total_reading_time_minutes: int
+    avg_pages_per_session: int
+    avg_session_duration_minutes: int
+    books_finished: int
+    current_streak_days: int

@@ -1,10 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.core.config import settings
 from app.api.v1.router import api_router
 
+# Ensure static/avatars exists
+os.makedirs("static/avatars", exist_ok=True)
+
 app = FastAPI(title=settings.PROJECT_NAME)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,

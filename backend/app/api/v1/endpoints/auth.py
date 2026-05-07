@@ -3,14 +3,13 @@ import random
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
 
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.redis_client import get_redis_client
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
-from app.schemas.token import Token, RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest
+from app.schemas.token import Token, RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 from app.api.dependencies import get_db, get_current_user
 
 router = APIRouter()
@@ -109,11 +108,11 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     redis_client.setex(f"pwd_reset:{user.email}", timedelta(minutes=15), otp)
 
     # MOCK SENDGRID LOGIC
-    print(f"--- MOCK SENDGRID ---")
+    print("--- MOCK SENDGRID ---")
     print(f"To: {user.email}")
-    print(f"Subject: Your Password Reset OTP")
+    print("Subject: Your Password Reset OTP")
     print(f"Body: Your OTP is {otp}. It expires in 15 minutes.")
-    print(f"---------------------")
+    print("---------------------")
 
     return {"message": "If that email is in our database, we will send an OTP to reset your password."}
 
@@ -141,7 +140,19 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
 
     return {"message": "Password updated successfully. Please log in again."}
 
-@router.get("/me", response_model=UserResponse)
-def read_current_user(current_user: User = Depends(get_current_user)):
-    """Fetch current user details."""
-    return current_user
+
+
+@router.post("/change-password")
+def change_password(request: ChangePasswordRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+    
+    hashed_password = get_password_hash(request.new_password)
+    current_user.hashed_password = hashed_password
+    db.add(current_user)
+    db.commit()
+
+    redis_client = get_redis_client()
+    redis_client.delete(f"refresh_token:{current_user.id}")
+
+    return {"message": "Password changed successfully"}
