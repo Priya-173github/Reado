@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView, 
+  StatusBar,
+  Alert
+} from 'react-native';
 import api from '../services/api';
+import { theme } from '../styles/theme';
 
 export default function EditSessionScreen({ route, navigation }: any) {
   const { session } = route.params;
@@ -8,8 +18,14 @@ export default function EditSessionScreen({ route, navigation }: any) {
   const [pagesRead, setPagesRead] = useState(session.pages_read.toString());
   const [duration, setDuration] = useState(Math.floor(session.duration_seconds / 60).toString());
   const [notes, setNotes] = useState(session.notes || '');
+  const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
+    if (!pagesRead || !duration) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+    setLoading(true);
     try {
       await api.put(`/sessions/${session.id}`, {
         pages_read: parseInt(pagesRead, 10),
@@ -19,32 +35,122 @@ export default function EditSessionScreen({ route, navigation }: any) {
       navigation.goBack();
     } catch (error) {
       console.error(error);
+      Alert.alert('Error', 'Failed to update session');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Pages Read</Text>
-      <TextInput style={styles.input} value={pagesRead} onChangeText={setPagesRead} keyboardType="number-pad" />
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <StatusBar barStyle="light-content" />
+      <Text style={styles.header}>Edit session</Text>
+      
+      <View style={styles.field}>
+        <Text style={styles.label}>PAGES READ</Text>
+        <TextInput 
+          style={styles.input} 
+          value={pagesRead} 
+          onChangeText={setPagesRead} 
+          keyboardType="number-pad" 
+          placeholder="0"
+          placeholderTextColor={theme.colors.outline}
+        />
+      </View>
 
-      <Text style={styles.label}>Duration (minutes)</Text>
-      <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="number-pad" />
+      <View style={styles.field}>
+        <Text style={styles.label}>DURATION (MINUTES)</Text>
+        <TextInput 
+          style={styles.input} 
+          value={duration} 
+          onChangeText={setDuration} 
+          keyboardType="number-pad" 
+          placeholder="0"
+          placeholderTextColor={theme.colors.outline}
+        />
+      </View>
 
-      <Text style={styles.label}>Notes</Text>
-      <TextInput style={[styles.input, styles.textArea]} value={notes} onChangeText={setNotes} multiline />
+      <View style={styles.field}>
+        <Text style={styles.label}>NOTES</Text>
+        <TextInput 
+          style={[styles.input, styles.textArea]} 
+          value={notes} 
+          onChangeText={setNotes} 
+          multiline 
+          placeholder="What did you think?"
+          placeholderTextColor={theme.colors.outline}
+          numberOfLines={4}
+        />
+      </View>
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveBtnText}>Save Changes</Text>
+      <TouchableOpacity 
+        style={[styles.saveBtn, loading && styles.disabledBtn]} 
+        onPress={handleSave}
+        disabled={loading}
+      >
+        <Text style={styles.saveBtnText}>{loading ? 'SAVING...' : 'SAVE CHANGES'}</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-  label: { fontSize: 16, fontWeight: 'bold', marginBottom: 5 },
-  input: { backgroundColor: 'white', padding: 15, borderRadius: 10, marginBottom: 20, borderWidth: 1, borderColor: '#ddd' },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  saveBtn: { backgroundColor: '#4CAF50', padding: 15, borderRadius: 10, alignItems: 'center' },
-  saveBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
+  container: { 
+    flex: 1, 
+    backgroundColor: theme.colors.background 
+  },
+  scrollContent: {
+    padding: theme.spacing.container_margin,
+    paddingTop: theme.spacing.xl,
+    paddingBottom: 40,
+  },
+  header: {
+    ...theme.typography.h1,
+    color: theme.colors.onBackground,
+    fontWeight: '900',
+    letterSpacing: -1.5,
+    marginBottom: theme.spacing.xl,
+  },
+  field: { 
+    marginBottom: theme.spacing.lg 
+  },
+  label: { 
+    ...theme.typography.labelCaps,
+    color: theme.colors.onSurfaceVariant, 
+    marginBottom: theme.spacing.sm 
+  },
+  input: { 
+    backgroundColor: theme.colors.surfaceContainerLow, 
+    borderWidth: 1, 
+    borderColor: theme.colors.outlineVariant, 
+    borderRadius: theme.borderRadius.lg, 
+    padding: theme.spacing.md, 
+    fontSize: 16,
+    color: theme.colors.onSurface,
+  },
+  textArea: { 
+    height: 120, 
+    textAlignVertical: 'top' 
+  },
+  saveBtn: { 
+    backgroundColor: theme.colors.primary, 
+    paddingVertical: 18, 
+    borderRadius: theme.borderRadius.xl, 
+    alignItems: 'center', 
+    marginTop: theme.spacing.md,
+    elevation: 4,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  disabledBtn: { 
+    backgroundColor: theme.colors.outline 
+  },
+  saveBtnText: { 
+    ...theme.typography.labelCaps,
+    color: theme.colors.onPrimary, 
+    fontSize: 16, 
+    fontWeight: '900' 
+  }
 });

@@ -6,6 +6,7 @@ from .book import BookResponse
 
 class ReadingSessionBase(BaseModel):
     book_id: Optional[UUID] = None
+    book_title: Optional[str] = None
     pages_read: int
     duration_seconds: int
     notes: Optional[str] = None
@@ -23,6 +24,7 @@ class ReadingSessionUpdate(BaseModel):
 class ReadingSessionResponse(ReadingSessionBase):
     id: UUID
     user_id: UUID
+    book_title: Optional[str] = None
     created_at: datetime
     book: Optional[BookResponse] = None
 

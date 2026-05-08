@@ -12,6 +12,7 @@ class ReadingSession(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     book_id = Column(UUID(as_uuid=True), ForeignKey("books.id"), nullable=True)
+    book_title = Column(Text, nullable=True)
     pages_read = Column(Integer, default=0, nullable=False)
     duration_seconds = Column(Integer, default=0, nullable=False)
     notes = Column(Text, nullable=True)
