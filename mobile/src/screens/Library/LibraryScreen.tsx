@@ -11,7 +11,7 @@ import {
   Dimensions
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
+import { theme } from '../../styles/theme';
 
 const { width } = Dimensions.get('window');
 const columnWidth = (width - theme.spacing.container_margin * 2 - theme.spacing.md) / 2;

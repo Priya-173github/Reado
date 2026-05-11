@@ -9,9 +9,9 @@ import {
   StatusBar,
   ScrollView
 } from 'react-native';
-import api from '../services/api';
+import api from '../../services/api';
 import * as SecureStore from 'expo-secure-store';
-import { theme } from '../styles/theme';
+import { theme } from '../../styles/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function SettingsScreen({ navigation }: any) {

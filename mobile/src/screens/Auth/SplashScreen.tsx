@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Image, Text } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SplashScreen() {
   // This screen is shown while AuthContext checks for stored tokens.

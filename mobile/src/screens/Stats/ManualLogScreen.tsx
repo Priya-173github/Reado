@@ -13,8 +13,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-import api from '../services/api';
+import { theme } from '../../styles/theme';
+import api from '../../services/api';
 
 export default function ManualLogScreen() {
   const navigation = useNavigation<any>();

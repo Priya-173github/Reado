@@ -9,8 +9,8 @@ import {
   StatusBar,
   Alert
 } from 'react-native';
-import api from '../services/api';
-import { theme } from '../styles/theme';
+import api from '../../services/api';
+import { theme } from '../../styles/theme';
 
 export default function EditSessionScreen({ route, navigation }: any) {
   const { session } = route.params;

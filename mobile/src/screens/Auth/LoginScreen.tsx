@@ -10,7 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();

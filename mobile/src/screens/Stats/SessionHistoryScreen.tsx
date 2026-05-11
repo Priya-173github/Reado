@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-import api from '../services/api';
+import { theme } from '../../styles/theme';
+import api from '../../services/api';
 
 export default function SessionHistoryScreen({ navigation }: any) {
   const [sessions, setSessions] = useState<any[]>([]);

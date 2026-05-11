@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
-import SplashScreen from '../screens/SplashScreen';
+import SplashScreen from '../screens/Auth/SplashScreen';
 
 export default function AppNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
