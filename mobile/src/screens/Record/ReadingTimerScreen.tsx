@@ -132,6 +132,11 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
   const handleSave = async () => {
     const pages = parseInt(pagesRead, 10) || 0;
     
+    if (pages <= 0) {
+      Alert.alert('Invalid Input', 'Please enter at least 1 page read.');
+      return;
+    }
+    
     // Validation: user cant exceed no of pages more than total pages
     if (total_pages > 0 && (initial_current_page + pages) > total_pages) {
       Alert.alert(

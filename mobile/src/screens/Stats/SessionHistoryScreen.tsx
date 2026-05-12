@@ -11,32 +11,55 @@ import {
   StatusBar
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../../styles/theme';
 import api from '../../services/api';
+import SessionCard from '../../components/SessionCard';
+import StatCard from '../../components/StatCard';
+import { LineChart } from 'react-native-chart-kit';
+import { Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 export default function SessionHistoryScreen({ navigation }: any) {
   const [sessions, setSessions] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [heatmap, setHeatmap] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const fetchSessions = async () => {
+  const filteredSessions = sessions.filter(session => {
+    const sessionDate = new Date(session.started_at).toDateString();
+    const targetDate = selectedDate.toDateString();
+    return sessionDate === targetDate;
+  });
+
+  const fetchData = async () => {
     try {
-      const response = await api.get('/sessions/');
-      setSessions(response.data);
+      const [sessionsRes, statsRes, heatmapRes] = await Promise.all([
+        api.get('/sessions/'),
+        api.get('/users/me/stats'),
+        api.get('/sessions/heatmap')
+      ]);
+      setSessions(sessionsRes.data);
+      setStats(statsRes.data);
+      setHeatmap(heatmapRes.data);
     } catch (error) {
-      console.error(error);
+      console.error('Failed to fetch stats:', error);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchSessions();
+    await fetchData();
     setRefreshing(false);
   };
 
   useFocusEffect(
     useCallback(() => {
-      fetchSessions();
+      fetchData();
     }, [])
   );
 
@@ -54,72 +77,104 @@ export default function SessionHistoryScreen({ navigation }: any) {
     ]);
   };
 
-  const renderItem = ({ item }: any) => {
-    const durationMins = Math.floor(item.duration_seconds / 60);
-    const dateStr = new Date(item.started_at).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const renderItem = ({ item }: any) => (
+    <SessionCard 
+      session={item} 
+      onDelete={handleDelete}
+      onEdit={(sess) => navigation.navigate('EditSession', { session: sess })}
+      showActions={true}
+      showProgress={true}
+    />
+  );
+
+  const renderDashboard = () => {
+    if (!stats) return null;
+
+    const weeks = [];
+    for (let i = 0; i < heatmap.length; i += 7) {
+      weeks.push(heatmap.slice(i, i + 7));
+    }
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <Image 
-            source={{ uri: item.book?.cover_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuB0_MXSn8SBWzEO__JK0JKR4PsciizduRLwZoDaOnC9Kh-b1lNCwl0_NLkjZPAVD9Eb4KuF1IzDdbeiLBSeDMdGMhuIn-dyhwr0GOs8Xr-Z_CIb-JnxfJvVt4clFqMFwz9qtyVkCwyXrBb_3KoBVJFnFaGX450-RQHboa3ggo0cE6JEuDNcF4kDFw8XUkZK4jOl-UWpHqeYGvv65vOovfaI-axz3u0Ob5SaV1htW1af3N_kSXOT1pkkq0qiz_BaQDVuABMOt6b3' }} 
-            style={styles.bookCover} 
+      <View style={styles.dashboard}>
+        {/* Stats Row */}
+        <View style={styles.statsGrid}>
+          <StatCard 
+            label="STREAK" 
+            value={stats.current_streak_days} 
+            icon={<MaterialCommunityIcons name="fire" size={20} color="#FF6B6B" />}
+            style={{ flex: 1 }}
           />
-          <View style={styles.cardInfo}>
-            <View style={styles.cardHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title} numberOfLines={1}>{item.book_title || item.book?.title || 'Unknown Book'}</Text>
-                <Text style={styles.meta}>Reading session • {dateStr}</Text>
+          <StatCard 
+            label="PAGES" 
+            value={stats.total_pages_read} 
+            icon={<MaterialCommunityIcons name="book-open-page-variant" size={20} color={theme.colors.primary} />}
+            style={{ flex: 1 }}
+          />
+          <StatCard 
+            label="TIME" 
+            value={`${Math.round(stats.total_reading_time_minutes / 60)}h`} 
+            icon={<MaterialCommunityIcons name="clock-outline" size={20} color="#4D96FF" />}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        {/* Heatmap Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Activity Heatmap</Text>
+          <View style={styles.heatmapContainer}>
+            {weeks.map((week, wIndex) => (
+              <View key={wIndex} style={styles.heatmapColumn}>
+                {week.map((day, dIndex) => {
+                  let color = theme.colors.surfaceContainerHighest;
+                  if (day.count > 0) color = 'rgba(2, 211, 138, 0.3)';
+                  if (day.count > 2) color = 'rgba(2, 211, 138, 0.6)';
+                  if (day.count > 5) color = theme.colors.primary;
+                  
+                  return (
+                    <View 
+                      key={dIndex} 
+                      style={[styles.heatmapSquare, { backgroundColor: color }]} 
+                    />
+                  );
+                })}
               </View>
-              <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                <MaterialIcons name="delete-outline" size={22} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.statsRow}>
-              <View>
-                <Text style={styles.statLabel}>PAGES</Text>
-                <Text style={styles.statValue}>+{item.pages_read}</Text>
-              </View>
-              <View>
-                <Text style={styles.statLabel}>TIME</Text>
-                <Text style={styles.statValue}>{durationMins}m</Text>
-              </View>
-            </View>
+            ))}
+          </View>
+          <View style={styles.heatmapFooter}>
+            <Text style={styles.heatmapLegendText}>Less</Text>
+            <View style={[styles.heatmapSquare, { backgroundColor: theme.colors.surfaceContainerHighest, marginHorizontal: 2 }]} />
+            <View style={[styles.heatmapSquare, { backgroundColor: 'rgba(2, 211, 138, 0.3)', marginHorizontal: 2 }]} />
+            <View style={[styles.heatmapSquare, { backgroundColor: 'rgba(2, 211, 138, 0.6)', marginHorizontal: 2 }]} />
+            <View style={[styles.heatmapSquare, { backgroundColor: theme.colors.primary, marginHorizontal: 2 }]} />
+            <Text style={styles.heatmapLegendText}>More</Text>
           </View>
         </View>
 
-        {/* Progress Bar Placeholder */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '45%' }]} />
-          </View>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>PROGRESS</Text>
-            <Text style={styles.progressPercent}>45%</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.actionBtn}>
-            <MaterialIcons name="favorite-border" size={18} color={theme.colors.onSurfaceVariant} />
-            <Text style={styles.actionText}>Kudos</Text>
-          </TouchableOpacity>
+        <View style={styles.historyHeader}>
+          <Text style={styles.sectionTitle}>History</Text>
           <TouchableOpacity 
-            style={styles.actionBtn} 
-            onPress={() => navigation.navigate('EditSession', { session: item })}
+            style={styles.datePickerBtn} 
+            onPress={() => setShowDatePicker(true)}
           >
-            <MaterialIcons name="edit" size={18} color={theme.colors.onSurfaceVariant} />
-            <Text style={styles.actionText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { marginLeft: 'auto' }]}>
-            <MaterialIcons name="share" size={18} color={theme.colors.onSurfaceVariant} />
+            <Text style={styles.dateText}>
+              {selectedDate.toDateString() === new Date().toDateString() ? 'Today' : selectedDate.toLocaleDateString()}
+            </Text>
+            <MaterialIcons name="calendar-today" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={(event, date) => {
+              setShowDatePicker(false);
+              if (date) setSelectedDate(date);
+            }}
+          />
+        )}
       </View>
     );
   };
@@ -131,9 +186,16 @@ export default function SessionHistoryScreen({ navigation }: any) {
         <Text style={styles.headerTitle}>Activity</Text>
       </View>
       <FlatList
-        data={sessions}
+        data={filteredSessions}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListHeaderComponent={renderDashboard}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="calendar-blank" size={48} color={theme.colors.surfaceContainerHighest} />
+            <Text style={styles.emptyStateText}>No activity recorded for this date.</Text>
+          </View>
+        }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -163,103 +225,83 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 100,
   },
-  card: { 
-    backgroundColor: theme.colors.surfaceContainer, 
-    borderRadius: theme.borderRadius.lg, 
-    marginBottom: theme.spacing.md, 
-    borderWidth: 1, 
-    borderColor: theme.colors.outlineVariant,
-    overflow: 'hidden',
+  dashboard: {
+    marginBottom: 10,
   },
-  cardTop: {
-    flexDirection: 'row',
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
-  },
-  bookCover: {
-    width: 64,
-    height: 96,
-    borderRadius: 4,
-  },
-  cardInfo: { 
-    flex: 1,
-  },
-  cardHeader: {
+  statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    marginBottom: 20,
+    gap: 12,
   },
-  title: { 
+  sectionCard: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+  },
+  sectionTitle: {
     ...theme.typography.h3,
     color: theme.colors.onSurface,
-    fontSize: 18,
+    marginBottom: 16,
   },
-  meta: {
-    ...theme.typography.bodySm,
-    color: theme.colors.onSurfaceVariant,
-    marginTop: 2,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-  },
-  statLabel: {
-    ...theme.typography.labelCaps,
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 10,
-  },
-  statValue: {
-    ...theme.typography.h3,
-    color: theme.colors.primary,
-    fontSize: 18,
-  },
-  progressSection: {
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.md,
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: theme.colors.surfaceContainerHighest,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
-  },
-  progressLabels: {
+  heatmapContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
   },
-  progressLabel: {
-    ...theme.typography.labelCaps,
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 10,
+  heatmapColumn: {
+    gap: 4,
   },
-  progressPercent: {
-    ...theme.typography.labelCaps,
-    color: theme.colors.primary,
-    fontSize: 10,
+  heatmapSquare: {
+    width: 10,
+    height: 10,
+    borderRadius: 2,
   },
-  cardActions: {
-    flexDirection: 'row',
-    padding: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.outlineVariant,
-    gap: theme.spacing.md,
-  },
-  actionBtn: {
+  heatmapFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    justifyContent: 'flex-end',
+    marginTop: 12,
   },
-  actionText: {
+  heatmapLegendText: {
     ...theme.typography.bodySm,
     color: theme.colors.onSurfaceVariant,
-    fontSize: 12,
-  }
+    fontSize: 10,
+    marginHorizontal: 4,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  datePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceContainerLow,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    gap: 8,
+  },
+  dateText: {
+    ...theme.typography.bodySm,
+    color: theme.colors.onSurfaceVariant,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  emptyStateText: {
+    ...theme.typography.bodySm,
+    color: theme.colors.onSurfaceVariant,
+    textAlign: 'center',
+  },
 });

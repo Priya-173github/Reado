@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import api from '../../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../styles/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function SettingsScreen({ navigation }: any) {
+  const { logout } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,25 +42,13 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout');
-      await SecureStore.deleteItemAsync('access_token');
-      await SecureStore.deleteItemAsync('refresh_token');
-      // Nav state will handle redirection
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   const handleDeleteAccount = () => {
     Alert.alert('Delete Account', 'Are you sure you want to permanently delete your account? This action cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await api.delete('/users/me');
-          await SecureStore.deleteItemAsync('access_token');
-          await SecureStore.deleteItemAsync('refresh_token');
+          await logout();
         } catch (error) {
           console.error(error);
         }
@@ -107,12 +97,6 @@ export default function SettingsScreen({ navigation }: any) {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>ACCOUNT ACTIONS</Text>
-        <TouchableOpacity style={styles.listButton} onPress={handleLogout}>
-          <MaterialIcons name="logout" size={20} color={theme.colors.onSurface} />
-          <Text style={styles.listButtonText}>Logout from Reado</Text>
-          <MaterialIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
-        </TouchableOpacity>
-
         <TouchableOpacity style={[styles.listButton, styles.dangerButton]} onPress={handleDeleteAccount}>
           <MaterialIcons name="delete-forever" size={20} color={theme.colors.error} />
           <Text style={[styles.listButtonText, styles.dangerText]}>Permanently Delete Account</Text>

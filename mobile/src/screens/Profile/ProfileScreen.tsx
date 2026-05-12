@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   StatusBar,
   ActivityIndicator
 } from 'react-native';
@@ -15,11 +15,13 @@ import api from '../../services/api';
 import Avatar from '../../components/Avatar';
 import StatCard from '../../components/StatCard';
 import ReadingHistoryTimeline from '../../components/ReadingHistoryTimeline';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen({ navigation }: any) {
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<any>({});
   const [stats, setStats] = useState<any>({});
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [heatmap, setHeatmap] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,14 +30,14 @@ export default function ProfileScreen({ navigation }: any) {
 
   const fetchData = async () => {
     try {
-      const [profileRes, statsRes, sessionsRes] = await Promise.all([
+      const [profileRes, statsRes, heatmapRes] = await Promise.all([
         api.get('/users/me'),
         api.get('/users/me/stats'),
-        api.get('/sessions/')
+        api.get('/sessions/heatmap')
       ]);
       setProfile(profileRes.data);
       setStats(statsRes.data);
-      setSessions(sessionsRes.data);
+      setHeatmap(heatmapRes.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -44,7 +46,7 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   const handle = `@${profile.full_name?.replace(/\s+/g, '').toLowerCase() || profile.email?.split('@')[0] || 'user'}`;
-  
+
   // Computed Stats
   const totalHours = Math.floor((stats.total_reading_time_minutes || 0) / 60);
 
@@ -76,22 +78,22 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Header Bar */}
       <View style={styles.headerBar}>
         <Text style={styles.logoText}>Reado</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.iconBtn}>
-            <MaterialIcons name="notifications-none" size={24} color={theme.colors.onSurface} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
             <MaterialIcons name="settings" size={24} color={theme.colors.onSurface} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={logout}>
+            <MaterialIcons name="logout" size={24} color={theme.colors.error} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <Avatar uri={profile.avatar_url} size={90} showBadge={true} containerStyle={{ marginBottom: 16 }} />
@@ -101,48 +103,50 @@ export default function ProfileScreen({ navigation }: any) {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <StatCard 
-            label="TOTAL PAGES" 
+          <StatCard
+            label="TOTAL PAGES"
             value={stats.total_pages_read > 1000 ? (stats.total_pages_read / 1000).toFixed(1) + 'k' : stats.total_pages_read || 0}
-            valueColor={theme.colors.statPurple}
+            valueColor={theme.colors.onSecondary}
             style={styles.statCardFixed}
           />
-          <StatCard 
-            label="BOOKS FINISHED" 
+          <StatCard
+            label="BOOKS FINISHED"
             value={stats.books_finished || 0}
-            valueColor={theme.colors.statYellow}
+            valueColor={theme.colors.onSecondary}
             style={styles.statCardFixed}
           />
-          <StatCard 
-            label="TOTAL HOURS" 
+          <StatCard
+            label="TOTAL HOURS"
             value={totalHours}
-            valueColor={theme.colors.statPurple}
+            valueColor={theme.colors.onSecondary}
             style={styles.statCardFixed}
           />
-          <StatCard 
-            label="LONGEST STREAK" 
+          <StatCard
+            label="LONGEST STREAK"
             value={stats.current_streak_days || 0}
             unit="DAYS"
-            valueColor={theme.colors.statOrange}
+            valueColor={theme.colors.onSecondary}
             style={styles.statCardFixed}
           />
         </View>
 
-        {/* Achievements */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader} 
+            onPress={() => navigation.navigate('Activity')}
+          >
             <Text style={styles.sectionTitle}>Achievements</Text>
             <MaterialIcons name="chevron-right" size={24} color={theme.colors.onSurfaceVariant} />
-          </View>
+          </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achievementsList}>
             {achievements.map((ach) => (
               <View key={ach.id} style={[styles.achievementCard, ach.locked && { opacity: 0.3 }]}>
                 <View style={styles.achievementIconWrapper}>
-                   {ach.type === 'material' ? (
-                     <MaterialIcons name={ach.icon as any} size={20} color="#211E26" />
-                   ) : (
-                     <Ionicons name={ach.icon as any} size={20} color="#211E26" />
-                   )}
+                  {ach.type === 'material' ? (
+                    <MaterialIcons name={ach.icon as any} size={20} color="#211E26" />
+                  ) : (
+                    <Ionicons name={ach.icon as any} size={20} color="#211E26" />
+                  )}
                 </View>
                 <Text style={styles.achievementText}>{ach.title}</Text>
               </View>
@@ -150,10 +154,54 @@ export default function ProfileScreen({ navigation }: any) {
           </ScrollView>
         </View>
 
-        {/* Reading History */}
+        {/* Activity Heatmap */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { marginBottom: 20 }]}>Reading History</Text>
-          <ReadingHistoryTimeline sessions={sessions} />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Reading Activity</Text>
+            <Text style={styles.viewAllText}>Last 90 days</Text>
+          </View>
+          
+          <View style={styles.heatmapCard}>
+            <View style={styles.heatmapGrid}>
+              {/* Labels for weeks/months could go here */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.heatmapColumns}>
+                  {Array.from({ length: 13 }).map((_, weekIndex) => (
+                    <View key={weekIndex} style={styles.heatmapColumn}>
+                      {Array.from({ length: 7 }).map((_, dayIndex) => {
+                        const dataIndex = weekIndex * 7 + dayIndex;
+                        const dayData = heatmap[dataIndex];
+                        if (!dayData) return <View key={dayIndex} style={styles.heatmapSquareEmpty} />;
+                        
+                        let color = 'rgba(255, 255, 255, 0.05)';
+                        if (dayData.count > 0) color = 'rgba(2, 211, 138, 0.2)';
+                        if (dayData.count > 2) color = 'rgba(2, 211, 138, 0.5)';
+                        if (dayData.count > 4) color = 'rgba(2, 211, 138, 0.8)';
+                        if (dayData.count > 6) color = '#02D38A';
+
+                        return (
+                          <View 
+                            key={dayIndex} 
+                            style={[styles.heatmapSquare, { backgroundColor: color }]} 
+                          />
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+            
+            <View style={styles.heatmapFooter}>
+              <Text style={styles.heatmapLegendText}>Less</Text>
+              <View style={[styles.heatmapSquareSmall, { backgroundColor: 'rgba(255, 255, 255, 0.05)' }]} />
+              <View style={[styles.heatmapSquareSmall, { backgroundColor: 'rgba(2, 211, 138, 0.2)' }]} />
+              <View style={[styles.heatmapSquareSmall, { backgroundColor: 'rgba(2, 211, 138, 0.5)' }]} />
+              <View style={[styles.heatmapSquareSmall, { backgroundColor: 'rgba(2, 211, 138, 0.8)' }]} />
+              <View style={[styles.heatmapSquareSmall, { backgroundColor: '#02D38A' }]} />
+              <Text style={styles.heatmapLegendText}>More</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -257,5 +305,55 @@ const styles = StyleSheet.create({
     color: theme.colors.onSurfaceVariant,
     textAlign: 'center',
     fontSize: 10,
+  },
+  viewAllText: {
+    ...theme.typography.labelCaps,
+    color: theme.colors.primary,
+    fontSize: 10,
+  },
+  heatmapCard: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+  },
+  heatmapGrid: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  heatmapColumns: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  heatmapColumn: {
+    gap: 4,
+  },
+  heatmapSquare: {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+  },
+  heatmapSquareEmpty: {
+    width: 14,
+    height: 14,
+  },
+  heatmapFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 8,
+  },
+  heatmapSquareSmall: {
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+  },
+  heatmapLegendText: {
+    ...theme.typography.labelCaps,
+    color: theme.colors.onSurfaceVariant,
+    fontSize: 8,
+    marginHorizontal: 4,
   },
 });

@@ -36,7 +36,6 @@ function TabNavigator() {
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           position: 'absolute',
-          elevation: 0,
         },
         tabBarLabelStyle: {
           ...theme.typography.labelCaps,
@@ -59,31 +58,25 @@ function TabNavigator() {
 
           if (route.name === 'Record') {
             return (
-              <View style={{ 
-                alignItems: 'center', 
+              <View style={{
+                alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.colors.primary,
-                width: 56,
-                height: 56,
-                borderRadius: 18,
-                marginTop: -30,
-                elevation: 4,
-                shadowColor: theme.colors.primary,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
+                width: 44,
+                height: 44,
+                borderRadius: 38,
               }}>
-                <MaterialIcons name="play-arrow" size={36} color={theme.colors.onPrimary} />
+                <MaterialIcons name="play-arrow" size={32} color={theme.colors.onPrimary} />
               </View>
             );
           }
 
           return (
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcons 
-                name={iconName} 
-                size={28} 
-                color={color} 
+              <MaterialIcons
+                name={iconName}
+                size={28}
+                color={color}
                 style={focused ? { opacity: 1 } : { opacity: 0.7 }}
               />
             </View>
@@ -93,14 +86,14 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Library" component={LibraryScreen} />
-      <Tab.Screen 
-        name="Record" 
-        component={SessionStarterScreen} 
-        options={{ 
+      <Tab.Screen
+        name="Record"
+        component={SessionStarterScreen}
+        options={{
           tabBarLabel: () => null,
           title: 'Record',
           tabBarStyle: { display: 'none' }
-        }} 
+        }}
       />
       <Tab.Screen name="Activity" component={SessionHistoryScreen} options={{ title: 'Stats' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -110,8 +103,8 @@ function TabNavigator() {
 
 export default function MainTabNavigator() {
   return (
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
         animation: 'slide_from_right',
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.onBackground,

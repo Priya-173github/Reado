@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { theme } from '../../styles/theme';
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 export default function SignupScreen({ navigation }: any) {
   const { signup } = useAuth();
@@ -96,9 +98,11 @@ export default function SignupScreen({ navigation }: any) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>📚</Text>
-          <Text style={styles.title}>Create account</Text>
-          <Text style={styles.subtitle}>Join the Reado community</Text>
+          <View style={styles.logoContainer}>
+            <MaterialIcons name="menu-book" size={40} color={theme.colors.primary} />
+            <Text style={styles.logoText}>Reado</Text>
+          </View>
+          <Text style={styles.title}>Create Account</Text>
         </View>
 
         <View style={styles.form}>
@@ -109,40 +113,47 @@ export default function SignupScreen({ navigation }: any) {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
-              placeholder="John Doe"
-              placeholderTextColor="#666"
-              value={fullName}
-              onChangeText={setFullName}
-              autoCapitalize="words"
-            />
+            <Text style={styles.label}>FULL NAME</Text>
+            <View style={[styles.inputWrapper, errors.fullName && styles.inputError]}>
+              <MaterialIcons name="person-outline" size={20} color={theme.colors.onSurfaceVariant} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="John Doe"
+                placeholderTextColor={theme.colors.outline}
+                value={fullName}
+                onChangeText={setFullName}
+                autoCapitalize="words"
+              />
+            </View>
             {errors.fullName && <Text style={styles.fieldError}>{errors.fullName}</Text>}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="you@example.com"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <Text style={styles.label}>EMAIL ADDRESS</Text>
+            <View style={[styles.inputWrapper, errors.email && styles.inputError]}>
+              <MaterialIcons name="mail-outline" size={20} color={theme.colors.onSurfaceVariant} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="name@domain.com"
+                placeholderTextColor={theme.colors.outline}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
             {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordContainer}>
+            <Text style={styles.label}>PASSWORD</Text>
+            <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
+              <MaterialIcons name="lock-outline" size={20} color={theme.colors.onSurfaceVariant} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
-                placeholder="Min. 8 characters"
-                placeholderTextColor="#666"
+                style={[styles.input, styles.passwordInput]}
+                placeholder="••••••••"
+                placeholderTextColor={theme.colors.outline}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -151,7 +162,11 @@ export default function SignupScreen({ navigation }: any) {
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+                <MaterialIcons
+                  name={showPassword ? "visibility" : "visibility-off"}
+                  size={20}
+                  color={theme.colors.onSurfaceVariant}
+                />
               </TouchableOpacity>
             </View>
             {errors.password && <Text style={styles.fieldError}>{errors.password}</Text>}
@@ -163,9 +178,12 @@ export default function SignupScreen({ navigation }: any) {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.onPrimary} />
             ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
+              <View style={styles.buttonContent}>
+                <Text style={styles.buttonText}>Sign Up</Text>
+                <MaterialIcons name="arrow-forward" size={20} color={theme.colors.onPrimary} />
+              </View>
             )}
           </TouchableOpacity>
 
@@ -174,9 +192,22 @@ export default function SignupScreen({ navigation }: any) {
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.linkText}>
-              Already have an account? <Text style={styles.linkBold}>Sign In</Text>
+              Already have an account? <Text style={styles.linkBold}>Log In</Text>
             </Text>
           </TouchableOpacity>
+
+          {/* Footer Community Section */}
+          <View style={styles.footer}>
+            <View style={styles.featureCard}>
+              <View style={styles.featureIconContainer}>
+                <MaterialIcons name="bolt" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={styles.featureTextContainer}>
+                <Text style={styles.featureTitle}>STREAK SYSTEM</Text>
+                <Text style={styles.featureDescription}>Gamify your reading goals with athletic-style metrics.</Text>
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -186,45 +217,54 @@ export default function SignupScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingVertical: 60,
   },
   header: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  logo: {
-    fontSize: 48,
-    marginBottom: 16,
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
+  },
+  logoText: {
+    ...theme.typography.h2,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...theme.typography.h1,
     color: '#FFFFFF',
-    marginBottom: 8,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#A0A0B8',
+    ...theme.typography.bodyMd,
+    color: theme.colors.onSurfaceVariant,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   form: {
     width: '100%',
   },
   errorBanner: {
-    backgroundColor: 'rgba(255, 71, 87, 0.15)',
-    borderColor: '#FF4757',
+    backgroundColor: 'rgba(255, 71, 87, 0.1)',
+    borderColor: theme.colors.error,
     borderWidth: 1,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   errorBannerText: {
-    color: '#FF4757',
+    color: theme.colors.error,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -232,67 +272,186 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    color: '#A0A0B8',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    ...theme.typography.labelCaps,
+    color: theme.colors.onSurfaceVariant,
+    marginBottom: 10,
+    fontSize: 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
-    backgroundColor: '#16213E',
-    borderRadius: 12,
-    padding: 16,
+    flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#2A2A4A',
+    height: '100%',
   },
   inputError: {
-    borderColor: '#FF4757',
-  },
-  passwordContainer: {
-    position: 'relative',
+    borderColor: theme.colors.error,
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 10,
   },
   eyeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
-  },
-  eyeText: {
-    fontSize: 18,
+    padding: 4,
   },
   fieldError: {
-    color: '#FF4757',
+    color: theme.colors.error,
     fontSize: 12,
     marginTop: 6,
+    marginLeft: 4,
   },
   button: {
-    backgroundColor: '#6C63FF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    height: 60,
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 32,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   buttonText: {
+    ...theme.typography.h3,
+    color: theme.colors.onPrimary,
+    fontSize: 18,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.outlineVariant,
+  },
+  dividerText: {
+    ...theme.typography.labelCaps,
+    color: theme.colors.onSurfaceVariant,
+    paddingHorizontal: 16,
+    fontSize: 11,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: 12,
+    height: 56,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    gap: 10,
+  },
+  socialIcon: {
+    opacity: 0.9,
+  },
+  socialButtonText: {
+    ...theme.typography.bodyMd,
+    fontWeight: '600',
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   linkContainer: {
     alignItems: 'center',
+    marginBottom: 48,
   },
   linkText: {
-    color: '#A0A0B8',
+    color: theme.colors.onSurfaceVariant,
     fontSize: 14,
   },
   linkBold: {
-    color: '#6C63FF',
+    color: theme.colors.primary,
     fontWeight: 'bold',
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outlineVariant,
+    paddingTop: 32,
+    gap: 24,
+  },
+  communityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  avatarGroup: {
+    flexDirection: 'row',
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.background,
+  },
+  communityTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  communityText: {
+    ...theme.typography.labelCaps,
+    color: theme.colors.onSurfaceVariant,
+    fontSize: 12,
+  },
+  featureCard: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    gap: 16,
+    alignItems: 'center',
+  },
+  featureIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(2, 211, 138, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureTitle: {
+    ...theme.typography.labelCaps,
+    color: theme.colors.primary,
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  featureDescription: {
+    ...theme.typography.bodySm,
+    color: theme.colors.onSurfaceVariant,
+    lineHeight: 18,
   },
 });

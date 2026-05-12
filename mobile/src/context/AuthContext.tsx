@@ -84,13 +84,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      // Try to notify the backend about the logout
       await api.post('/auth/logout');
-    } catch {
-      // Ignore errors during logout API call
+    } catch (error) {
+      console.warn('Backend logout failed or session already expired');
+    } finally {
+      // Always clear local storage and state
+      await SecureStore.deleteItemAsync('access_token');
+      await SecureStore.deleteItemAsync('refresh_token');
+      setUser(null);
     }
-    await SecureStore.deleteItemAsync('access_token');
-    await SecureStore.deleteItemAsync('refresh_token');
-    setUser(null);
   };
 
   const forgotPassword = async (email: string) => {
