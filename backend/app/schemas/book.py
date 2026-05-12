@@ -11,7 +11,7 @@ class BookBase(BaseModel):
     isbn: Optional[str] = None
 
 class BookCreate(BookBase):
-    pass
+    status: Optional[str] = "reading"
 
 class BookResponse(BookBase):
     id: UUID

@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.security import get_password_hash, verify_password, create_access_token, ALGORITHM
 from app.core.redis_client import get_redis_client
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token, RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_db, get_current_user, oauth2_scheme
 
 router = APIRouter()
 
@@ -74,15 +74,28 @@ def login(user_in: UserCreate, db: Session = Depends(get_db)):
     }
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(request: RefreshTokenRequest, current_user: User = Depends(get_current_user)):
+def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    import jwt
+    try:
+        # Decode token even if expired to get user_id
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False}
+        )
+        user_id = payload.get("sub")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
     redis_client = get_redis_client()
-    stored_token = redis_client.get(f"refresh_token:{current_user.id}")
+    stored_token = redis_client.get(f"refresh_token:{user_id}")
     
     if not stored_token or stored_token != request.refresh_token:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    access_token = create_access_token(subject=current_user.id)
-    new_refresh_token = create_refresh_token(user_id=str(current_user.id))
+    access_token = create_access_token(subject=user_id)
+    new_refresh_token = create_refresh_token(user_id=str(user_id))
 
     return {
         "access_token": access_token,

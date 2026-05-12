@@ -72,6 +72,81 @@ def get_sessions(
     sessions = query.order_by(ReadingSession.started_at.desc()).offset(skip).limit(limit).all()
     return sessions
 
+@router.get("/activity")
+def get_activity_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from datetime import timedelta
+    from sqlalchemy import func, cast, Date
+    
+    # Get last 7 days
+    today = datetime.now(timezone.utc).date()
+    seven_days_ago = today - timedelta(days=6)
+    
+    results = db.query(
+        cast(ReadingSession.started_at, Date).label('day'),
+        func.sum(ReadingSession.pages_read).label('pages'),
+        func.sum(ReadingSession.duration_seconds).label('seconds')
+    ).filter(
+        ReadingSession.user_id == current_user.id,
+        ReadingSession.started_at >= seven_days_ago,
+        ReadingSession.deleted_at.is_(None)
+    ).group_by(
+        cast(ReadingSession.started_at, Date)
+    ).all()
+    
+    # Fill in gaps for days with no activity
+    activity_map = {r.day: {"pages": r.pages, "minutes": r.seconds // 60} for r in results}
+    
+    activity_data = []
+    for i in range(7):
+        day = seven_days_ago + timedelta(days=i)
+        stats = activity_map.get(day, {"pages": 0, "minutes": 0})
+        activity_data.append({
+            "day": day.strftime("%a"), # Mon, Tue...
+            "full_date": day.isoformat(),
+            "pages": stats["pages"],
+            "minutes": stats["minutes"]
+        })
+        
+    return activity_data
+
+@router.get("/heatmap")
+def get_heatmap_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from datetime import timedelta
+    from sqlalchemy import func, cast, Date
+    
+    # Get last 90 days
+    today = datetime.now(timezone.utc).date()
+    start_date = today - timedelta(days=89)
+    
+    results = db.query(
+        cast(ReadingSession.started_at, Date).label('day'),
+        func.count(ReadingSession.id).label('count')
+    ).filter(
+        ReadingSession.user_id == current_user.id,
+        ReadingSession.started_at >= start_date,
+        ReadingSession.deleted_at.is_(None)
+    ).group_by(
+        cast(ReadingSession.started_at, Date)
+    ).all()
+    
+    activity_map = {r.day: r.count for r in results}
+    
+    heatmap_data = []
+    for i in range(90):
+        day = start_date + timedelta(days=i)
+        heatmap_data.append({
+            "date": day.isoformat(),
+            "count": activity_map.get(day, 0)
+        })
+        
+    return heatmap_data
+
 @router.get("/{session_id}", response_model=ReadingSessionResponse)
 def get_session(session_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     session = db.query(ReadingSession).filter(

@@ -24,7 +24,7 @@ def get_user_books(
     
     # Calculate progress
     for ub in user_books:
-        if ub.book.total_pages and ub.book.total_pages > 0:
+        if ub.book and ub.book.total_pages and ub.book.total_pages > 0:
             ub.progress_percentage = min(100, int((ub.current_page / ub.book.total_pages) * 100))
         else:
             ub.progress_percentage = 0
@@ -64,7 +64,7 @@ def add_book(
             id=uuid.uuid4(),
             user_id=current_user.id,
             book_id=db_book.id,
-            status=BookStatus.reading,
+            status=book_in.status or BookStatus.reading,
             current_page=0
         )
         db.add(user_book)
@@ -72,3 +72,21 @@ def add_book(
     db.commit()
     db.refresh(user_book)
     return user_book
+
+@router.delete("/{user_book_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_book(
+    user_book_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    user_book = db.query(UserBook).filter(
+        UserBook.id == user_book_id,
+        UserBook.user_id == current_user.id
+    ).first()
+    
+    if not user_book:
+        raise HTTPException(status_code=404, detail="Book not found in your library")
+        
+    db.delete(user_book)
+    db.commit()
+    return None
