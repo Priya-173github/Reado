@@ -13,7 +13,14 @@
         "buildType": "apk"
       }
     },
-    "production": {}
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://reado-ll4n.onrender.com/v1"
+      }
+    }
   },
   "submit": {
     "production": {}

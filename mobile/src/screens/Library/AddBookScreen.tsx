@@ -22,38 +22,80 @@ const { width } = Dimensions.get('window');
 
 export default function AddBookScreen() {
   const navigation = useNavigation<any>();
-  
+
   // Form State
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookTotalPages, setNewBookTotalPages] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Search State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBookData, setSelectedBookData] = useState<any>(null);
+  const [externalResults, setExternalResults] = useState<any[]>([]);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const cacheRef = React.useRef<Record<string, any>>({});
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (newBookTitle.length >= 3 && !selectedBookData) {
+        searchGoogleBooks(newBookTitle);
+      } else if (newBookTitle.length === 0) {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [newBookTitle]);
 
   const searchGoogleBooks = async (query: string) => {
-    if (query.length < 3) {
-      setSearchResults([]);
-      return;
-    }
-    
     try {
+      if (cacheRef.current[query]) {
+        setExternalResults(cacheRef.current[query]);
+        return;
+      }
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       setIsSearching(true);
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=10`);
+      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`,
+        {
+          signal: controller.signal,
+        });
+
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+
       const data = await response.json();
-      setSearchResults(data.items || []);
-    } catch (error) {
+      cacheRef.current[query] = data.docs || [];
+      setSearchResults(data.docs || []);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Search failed', error);
+      // Only alert if it's not a background search or if it's a persistent error
+      if (query.length > 5) {
+        Alert.alert('Search Error', 'Could not connect to Google Books. Please check your internet.');
+      }
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleSelectBook = (item: any) => {
-    const info = item.volumeInfo;
+    const info = {
+      title: item.title,
+      authors: item.author_name,
+      pageCount: item.number_of_pages_median,
+      imageLinks: {
+        thumbnail: item.cover_i
+          ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`
+          : null
+      }
+    };
     setNewBookTitle(info.title);
     setNewBookAuthor(info.authors ? info.authors[0] : 'Unknown Author');
     setNewBookTotalPages(info.pageCount ? info.pageCount.toString() : '');
@@ -79,9 +121,9 @@ export default function AddBookScreen() {
         google_books_id: selectedBookData?.google_books_id || `manual_${Date.now()}`,
         cover_url: selectedBookData?.cover_url || 'https://via.placeholder.com/150x220?text=Manual+Entry'
       });
-      
+
       const newBook = response.data;
-      
+
       // Navigate to Timer
       navigation.replace('ReadingTimer', {
         book_id: newBook.book_id,
@@ -89,7 +131,10 @@ export default function AddBookScreen() {
         total_pages: newBook.book.total_pages,
         current_page: newBook.current_page
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Failed to add book', error);
       Alert.alert('Error', 'Failed to add new book');
     } finally {
@@ -100,13 +145,13 @@ export default function AddBookScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Book</Text>
-        <View style={{ width: 40 }} /> 
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -120,7 +165,7 @@ export default function AddBookScreen() {
               value={newBookTitle}
               onChangeText={(text) => {
                 setNewBookTitle(text);
-                searchGoogleBooks(text);
+                if (selectedBookData) setSelectedBookData(null);
               }}
             />
             {isSearching && (
@@ -131,19 +176,32 @@ export default function AddBookScreen() {
           {searchResults.length > 0 && (
             <View style={styles.searchResults}>
               {searchResults.map((item) => (
-                <TouchableOpacity 
-                  key={item.id} 
+                <TouchableOpacity
+                  key={item.id}
                   style={styles.searchResultItem}
                   onPress={() => handleSelectBook(item)}
                 >
-                  <Image 
-                    source={{ uri: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://via.placeholder.com/150x220?text=No+Cover' }} 
-                    style={styles.resultCover} 
+                  <Image
+                    source={{
+                      uri: item.cover_i
+                        ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`
+                        : 'https://via.placeholder.com/150x220?text=No+Cover'
+                    }}
+                    style={styles.resultCover}
                   />
+
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.resultTitle} numberOfLines={1}>{item.volumeInfo.title}</Text>
-                    <Text style={styles.resultAuthor} numberOfLines={1}>{item.volumeInfo.authors?.[0] || 'Unknown Author'}</Text>
-                    <Text style={styles.resultPages}>{item.volumeInfo.pageCount || '?'} pages</Text>
+                    <Text style={styles.resultTitle} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+
+                    <Text style={styles.resultAuthor} numberOfLines={1}>
+                      {item.author_name?.[0] || 'Unknown Author'}
+                    </Text>
+
+                    <Text style={styles.resultPages}>
+                      {item.number_of_pages_median || '?'} pages
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -187,7 +245,7 @@ export default function AddBookScreen() {
           </View>
         )}
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
           onPress={handleStartNewBook}
           disabled={isSubmitting}

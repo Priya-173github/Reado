@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Image, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
   TextInput,
   StatusBar,
   Dimensions,
@@ -28,13 +28,30 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [externalResults, setExternalResults] = useState<any[]>([]);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const cacheRef = React.useRef<Record<string, any>>({});
+
+  React.useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (activeTab === 'wishlist' && search.trim().length >= 3) {
+        searchGoogleBooks(search);
+      } else if (search.length === 0) {
+        setExternalResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, activeTab]);
 
   const fetchBooks = async () => {
     try {
       setLoading(true);
       const response = await api.get('/books/');
       setBooks(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Failed to fetch books', error);
     } finally {
       setLoading(false);
@@ -48,17 +65,31 @@ export default function LibraryScreen() {
   );
 
   const searchGoogleBooks = async (query: string) => {
-    if (query.length < 3) {
-      setExternalResults([]);
-      return;
-    }
-    
     try {
+      if (cacheRef.current[query]) {
+        setExternalResults(cacheRef.current[query]);
+        return;
+      }
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       setIsSearching(true);
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(query)}&maxResults=10`);
+      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`,
+        {
+          signal: controller.signal,
+        });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const data = await response.json();
-      setExternalResults(data.items || []);
-    } catch (error) {
+      cacheRef.current[query] = data.docs || [];
+      setExternalResults(data.docs || []);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Search failed', error);
     } finally {
       setIsSearching(false);
@@ -71,9 +102,9 @@ export default function LibraryScreen() {
       'Are you sure you want to remove this book from your library?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive', 
+        {
+          text: 'Remove',
+          style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/books/${userBookId}`);
@@ -87,27 +118,47 @@ export default function LibraryScreen() {
     );
   };
 
-  const handleAddToWishlist = async (googleBook: any) => {
-    const info = googleBook.volumeInfo;
+  const handleAddToWishlist = async (book: any) => {
+
+    const info = {
+      title: book.title,
+      authors: book.author_name,
+      pageCount: book.number_of_pages_median,
+      imageLinks: {
+        thumbnail: book.cover_i
+          ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+          : null
+      }
+    };
+
     try {
+
       await api.post('/books/', {
         title: info.title,
-        author: info.authors ? info.authors[0] : 'Unknown Author',
+        author: info.authors?.[0] || 'Unknown Author',
         total_pages: info.pageCount || 0,
-        google_books_id: googleBook.id,
-        cover_url: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://via.placeholder.com/150x220?text=No+Cover',
+        google_books_id: book.key || `openlib_${Date.now()}`,
+        cover_url:
+          info.imageLinks.thumbnail ||
+          'https://via.placeholder.com/150x220?text=No+Cover',
         status: 'want_to_read'
       });
+
       Alert.alert('Success', 'Added to Wishlist');
+
       setSearch('');
       setExternalResults([]);
+
       fetchBooks();
+
     } catch (error) {
+
       Alert.alert('Error', 'Failed to add book');
+
     }
   };
 
-  const filteredBooks = books.filter(ub => 
+  const filteredBooks = books.filter(ub =>
     ub.book.title.toLowerCase().includes(search.toLowerCase()) ||
     ub.book.author.toLowerCase().includes(search.toLowerCase())
   );
@@ -125,8 +176,8 @@ export default function LibraryScreen() {
             <MaterialIcons name="check-circle" size={16} color={theme.colors.primary} />
           </View>
         )}
-        <TouchableOpacity 
-          style={styles.removeBtn} 
+        <TouchableOpacity
+          style={styles.removeBtn}
           onPress={() => handleRemoveBook(item.id)}
         >
           <MaterialIcons name="delete-outline" size={16} color="#FF4757" />
@@ -148,17 +199,26 @@ export default function LibraryScreen() {
   );
 
   const renderExternalItem = ({ item }: any) => {
-    const info = item.volumeInfo;
+    const info = {
+      title: item.title,
+      authors: item.author_name,
+      pageCount: item.number_of_pages_median,
+      imageLinks: {
+        thumbnail: item.cover_i
+          ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`
+          : null
+      }
+    };
     return (
       <View style={styles.externalCard}>
-        <Image 
-          source={{ uri: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://via.placeholder.com/150x220?text=No+Cover' }} 
-          style={styles.externalCover} 
+        <Image
+          source={{ uri: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://via.placeholder.com/150x220?text=No+Cover' }}
+          style={styles.externalCover}
         />
         <View style={styles.externalInfo}>
           <Text style={styles.externalTitle} numberOfLines={1}>{info.title}</Text>
           <Text style={styles.externalAuthor} numberOfLines={1}>{info.authors?.[0] || 'Unknown'}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addWishlistBtn}
             onPress={() => handleAddToWishlist(item)}
           >
@@ -176,14 +236,14 @@ export default function LibraryScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Library</Text>
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'library' && styles.activeTab]} 
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'library' && styles.activeTab]}
             onPress={() => { setActiveTab('library'); setSearch(''); setExternalResults([]); }}
           >
             <Text style={[styles.tabText, activeTab === 'library' && styles.activeTabText]}>My Library</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]} 
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]}
             onPress={() => { setActiveTab('wishlist'); setSearch(''); setExternalResults([]); }}
           >
             <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
@@ -193,14 +253,13 @@ export default function LibraryScreen() {
 
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={20} color={theme.colors.onSurfaceVariant} />
-        <TextInput 
+        <TextInput
           style={styles.searchInput}
           placeholder={activeTab === 'library' ? "Search library..." : "Search new books..."}
           placeholderTextColor={theme.colors.outline}
           value={search}
           onChangeText={(text) => {
             setSearch(text);
-            if (activeTab === 'wishlist') searchGoogleBooks(text);
           }}
         />
         {isSearching && <ActivityIndicator size="small" color={theme.colors.primary} />}
@@ -403,7 +462,7 @@ const styles = StyleSheet.create({
   },
   coverContainer: {
     width: '100%',
-    aspectRatio: 2/3,
+    aspectRatio: 2 / 3,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: theme.colors.surfaceContainer,

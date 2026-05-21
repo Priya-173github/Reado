@@ -65,7 +65,12 @@ export default function ManualLogScreen() {
     if (!query) return;
     setSearching(true);
     try {
-      const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
+      const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`);
+      
+      if (response.status !== 200) {
+        throw new Error(`API returned status ${response.status}`);
+      }
+
       const items = response.data.items || [];
       const formatted = items.map((item: any) => ({
         google_books_id: item.id,
@@ -76,8 +81,13 @@ export default function ManualLogScreen() {
         isbn: item.volumeInfo.industryIdentifiers?.[0]?.identifier
       }));
       setSearchResults(formatted);
-    } catch (error) {
+      
+      if (formatted.length === 0) {
+        Alert.alert('No Results', 'No books found matching your search.');
+      }
+    } catch (error: any) {
       console.error(error);
+      Alert.alert('Search Failed', 'Could not fetch data from Google Books. Please check your connection.');
     } finally {
       setSearching(false);
     }
