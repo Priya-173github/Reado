@@ -112,7 +112,7 @@ export default function MainTabNavigator() {
         contentStyle: { backgroundColor: theme.colors.background }
       }}
     >
-      <Stack.Screen name="MainTabs" component={TabNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="ReadingTimer" component={ReadingTimerScreen} options={{ title: 'Reading Timer' }} />
       <Stack.Screen name="AddBook" component={AddBookScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ManualLog" component={ManualLogScreen} options={{ title: 'Add Activity' }} />
