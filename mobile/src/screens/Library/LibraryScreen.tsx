@@ -17,6 +17,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 import api from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { searchBooks } from '../../services/bookSearch';
 
 const { width } = Dimensions.get('window');
 const columnWidth = (width - theme.spacing.container_margin * 2 - theme.spacing.md) / 2;
@@ -28,13 +29,11 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [externalResults, setExternalResults] = useState<any[]>([]);
-  const abortControllerRef = React.useRef<AbortController | null>(null);
-  const cacheRef = React.useRef<Record<string, any>>({});
 
   React.useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (activeTab === 'wishlist' && search.trim().length >= 3) {
-        searchGoogleBooks(search);
+        handleSearch(search);
       } else if (search.length === 0) {
         setExternalResults([]);
       }
@@ -42,6 +41,21 @@ export default function LibraryScreen() {
 
     return () => clearTimeout(delayDebounceFn);
   }, [search, activeTab]);
+
+  const handleSearch = async (query: string) => {
+    try {
+      setIsSearching(true);
+      const results = await searchBooks(query);
+      setExternalResults(results);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return;
+      }
+      console.error(error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const fetchBooks = async () => {
     try {
@@ -63,38 +77,6 @@ export default function LibraryScreen() {
       fetchBooks();
     }, [])
   );
-
-  const searchGoogleBooks = async (query: string) => {
-    try {
-      if (cacheRef.current[query]) {
-        setExternalResults(cacheRef.current[query]);
-        return;
-      }
-      abortControllerRef.current?.abort();
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      setIsSearching(true);
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`,
-        {
-          signal: controller.signal,
-        });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      cacheRef.current[query] = data.docs || [];
-      setExternalResults(data.docs || []);
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        return;
-      }
-      console.error('Search failed', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const handleRemoveBook = async (userBookId: string) => {
     Alert.alert(
@@ -120,26 +102,15 @@ export default function LibraryScreen() {
 
   const handleAddToWishlist = async (book: any) => {
 
-    const info = {
-      title: book.title,
-      authors: book.author_name,
-      pageCount: book.number_of_pages_median,
-      imageLinks: {
-        thumbnail: book.cover_i
-          ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
-          : null
-      }
-    };
-
     try {
 
       await api.post('/books/', {
-        title: info.title,
-        author: info.authors?.[0] || 'Unknown Author',
-        total_pages: info.pageCount || 0,
-        google_books_id: book.key || `openlib_${Date.now()}`,
+        title: book.title,
+        author: book.author,
+        total_pages: book.pages,
+        google_books_id: book.id || `openlib_${Date.now()}`,
         cover_url:
-          info.imageLinks.thumbnail ||
+          book.cover ||
           'https://via.placeholder.com/150x220?text=No+Cover',
         status: 'want_to_read'
       });
@@ -309,7 +280,7 @@ export default function LibraryScreen() {
             <FlatList
               key="external-results"
               data={externalResults}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item.id?.toString() || index.toString()}
               renderItem={renderExternalItem}
               contentContainerStyle={styles.externalList}
             />
@@ -317,7 +288,7 @@ export default function LibraryScreen() {
             <FlatList
               key="wishlist-grid"
               data={wishlistBooks}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item.id?.toString() || index.toString()}
               renderItem={renderBookItem}
               numColumns={2}
               contentContainerStyle={styles.list}

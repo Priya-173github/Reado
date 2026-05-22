@@ -14,7 +14,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { theme } from '../../styles/theme';
 import api from '../../services/api';
@@ -81,9 +81,19 @@ export default function HomeScreen() {
           containerStyle={{ marginBottom: 0 }}
         />
         <Text style={styles.logoText}>Reado</Text>
-        <View style={styles.streakBadge}>
-          <MaterialIcons name="local-fire-department" size={20} color={theme.colors.statOrange} />
-          <Text style={styles.streakText}>{stats?.current_streak_days || 0}</Text>
+        <View style={styles.rightHeader}>
+          <TouchableOpacity
+            style={styles.aiBtn}
+            onPress={() => navigation.navigate('BookAIChat')}
+            accessibilityLabel="Open Book AI"
+          >
+            <MaterialCommunityIcons name="robot" size={20} color={theme.colors.primary} />
+          </TouchableOpacity>
+
+          <View style={styles.streakBadge}>
+            <MaterialIcons name="local-fire-department" size={20} color={theme.colors.statOrange} />
+            <Text style={styles.streakText}>{stats?.current_streak_days || 0}</Text>
+          </View>
         </View>
       </View>
 
@@ -111,7 +121,7 @@ export default function HomeScreen() {
               <Text style={styles.legendText}>Pages</Text>
             </View>
           </View>
-          
+
           <View style={styles.chartContainer}>
             <LineChart
               data={{
@@ -165,7 +175,7 @@ export default function HomeScreen() {
           </View>
 
           {latestSession ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => navigation.navigate('ReadingTimer', {
                 book_id: latestSession.book?.id || latestSession.book_id,
@@ -185,8 +195,8 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Floating Manual Log Button */}
-      <TouchableOpacity 
-        style={styles.fab} 
+      <TouchableOpacity
+        style={styles.fab}
         onPress={() => navigation.navigate('ManualLog')}
       >
         <MaterialIcons name="add" size={28} color={theme.colors.primary} />
@@ -223,6 +233,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.outlineVariant,
     gap: 4,
+  },
+
+  rightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   streakText: {
     ...theme.typography.labelCaps,

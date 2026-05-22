@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
-import { COLORS } from '../../screens/BookAI/BookAIChatScreen.styles';
+import { theme } from '../../styles/theme'
 
 export function TypingIndicator() {
   const anims = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
@@ -50,9 +50,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.surface,
+    backgroundColor: theme.colors.surface,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -60,13 +60,13 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: COLORS.goldDim,
+    backgroundColor: theme.colors.primaryContainer,
     opacity: 0.6,
   },
   bubble: {
-    backgroundColor: COLORS.aiBubble,
+    backgroundColor: theme.colors.surfaceContainerLow,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
     borderRadius: 16,
     borderBottomLeftRadius: 4,
     paddingHorizontal: 16,
@@ -81,6 +81,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.textDim,
+    backgroundColor: theme.colors.onSurfaceVariant,
   },
 });

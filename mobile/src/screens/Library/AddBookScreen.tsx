@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 import api from '../../services/api';
+import { searchBooks } from '../../services/bookSearch';
 
 const { width } = Dimensions.get('window');
 
@@ -28,19 +29,14 @@ export default function AddBookScreen() {
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookTotalPages, setNewBookTotalPages] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Search State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBookData, setSelectedBookData] = useState<any>(null);
-  const [externalResults, setExternalResults] = useState<any[]>([]);
-  const abortControllerRef = React.useRef<AbortController | null>(null);
-  const cacheRef = React.useRef<Record<string, any>>({});
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (newBookTitle.length >= 3 && !selectedBookData) {
-        searchGoogleBooks(newBookTitle);
+        handleSearch(newBookTitle);
       } else if (newBookTitle.length === 0) {
         setSearchResults([]);
       }
@@ -49,60 +45,40 @@ export default function AddBookScreen() {
     return () => clearTimeout(delayDebounceFn);
   }, [newBookTitle]);
 
-  const searchGoogleBooks = async (query: string) => {
+  const handleSearch = async (query: string) => {
     try {
-      if (cacheRef.current[query]) {
-        setExternalResults(cacheRef.current[query]);
-        return;
-      }
-      abortControllerRef.current?.abort();
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
       setIsSearching(true);
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10`,
-        {
-          signal: controller.signal,
-        });
-
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      cacheRef.current[query] = data.docs || [];
-      setSearchResults(data.docs || []);
+      const results = await searchBooks(query);
+      setSearchResults(results);
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return;
       }
-      console.error('Search failed', error);
-      // Only alert if it's not a background search or if it's a persistent error
-      if (query.length > 5) {
-        Alert.alert('Search Error', 'Could not connect to Google Books. Please check your internet.');
-      }
+      console.error(error);
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleSelectBook = (item: any) => {
-    const info = {
-      title: item.title,
-      authors: item.author_name,
-      pageCount: item.number_of_pages_median,
-      imageLinks: {
-        thumbnail: item.cover_i
-          ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`
-          : null
-      }
-    };
-    setNewBookTitle(info.title);
-    setNewBookAuthor(info.authors ? info.authors[0] : 'Unknown Author');
-    setNewBookTotalPages(info.pageCount ? info.pageCount.toString() : '');
+
+    setNewBookTitle(item.title);
+
+    setNewBookAuthor(
+      item.author || 'Unknown Author'
+    );
+
+    setNewBookTotalPages(
+      item.pages ? item.pages.toString() : ''
+    );
+
     setSelectedBookData({
       google_books_id: item.id,
-      cover_url: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://via.placeholder.com/150x220?text=No+Cover'
+      cover_url:
+        item.cover ||
+        'https://via.placeholder.com/150x220?text=No+Cover'
     });
+
     setSearchResults([]);
   };
 

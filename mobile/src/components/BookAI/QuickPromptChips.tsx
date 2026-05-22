@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { ChatMode } from '../../types/bookAI.types';
 import { QUICK_PROMPTS } from '../../constants/bookAIPrompts';
-import { COLORS } from '../../screens/BookAI/BookAIChatScreen.styles';
+import { theme } from '../../styles/theme';
 
 interface QuickPromptChipsProps {
   mode: ChatMode;
@@ -48,8 +48,8 @@ QuickPromptChips.displayName = 'QuickPromptChips';
 const styles = StyleSheet.create({
   wrapper: {
     borderTopWidth: 0.5,
-    borderTopColor: COLORS.borderLight,
-    backgroundColor: COLORS.bg,
+    borderTopColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.background,
   },
   row: {
     flexDirection: 'row',
@@ -62,17 +62,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderColor: theme.colors.outline,
+    backgroundColor: theme.colors.surface,
   },
   chipDisabled: {
     opacity: 0.4,
   },
   chipText: {
     fontSize: 12,
-    color: COLORS.textMuted,
+    color: theme.colors.onSurfaceVariant,
   },
   chipTextDisabled: {
-    color: COLORS.textDim,
+    color: theme.colors.onSurfaceVariant,
   },
 });

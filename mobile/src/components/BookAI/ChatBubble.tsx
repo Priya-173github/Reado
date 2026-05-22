@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ChatMessage } from '../../types/bookAI.types';
-import { COLORS, FONTS } from '../../screens/BookAI/BookAIChatScreen.styles';
+import { theme } from '../../styles/theme';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarAI: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: theme.colors.surface,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
   },
   avatarUser: {
     backgroundColor: '#2a1f0e',
@@ -78,13 +78,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   bubbleAI: {
-    backgroundColor: COLORS.aiBubble,
+    backgroundColor: theme.colors.primary,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
     borderBottomLeftRadius: 4,
   },
   bubbleUser: {
-    backgroundColor: COLORS.userBubble,
+    backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 4,
   },
 
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
   },
   citeText: {
     fontSize: 10,
-    color: COLORS.gold,
-    fontFamily: FONTS.sans,
+    color: theme.colors.primary,
+    fontFamily: theme.typography.h3.fontFamily,
   },
 
   bubbleText: {
@@ -107,11 +107,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   bubbleTextAI: {
-    color: COLORS.aiText,
-    fontFamily: FONTS.serif,
+    color: theme.colors.onSurface,
+    fontFamily: theme.typography.fontFamily,
   },
   bubbleTextUser: {
-    color: COLORS.userText,
-    fontFamily: FONTS.sans,
+    color: theme.colors.onPrimary,
+    fontFamily: theme.typography.fontFamily,
   },
 });

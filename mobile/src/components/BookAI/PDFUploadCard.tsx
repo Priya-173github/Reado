@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BookMeta } from '../../types/bookAI.types';
-import { COLORS } from '../../screens/BookAI/BookAIChatScreen.styles';
+import { theme } from '../../styles/theme';
 
 interface PDFUploadCardProps {
   bookMeta: BookMeta | null;
@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 13,
-    backgroundColor: COLORS.surface,
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
     gap: 10,
   },
   uploadIconWrap: {
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
   },
   uploadEmoji: { fontSize: 18 },
   uploadTriggerText: { flex: 1 },
-  uploadTriggerTitle: { fontSize: 13, fontWeight: '500', color: COLORS.text },
-  uploadTriggerSub: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
-  uploadArrow: { fontSize: 20, color: COLORS.textDim },
+  uploadTriggerTitle: { fontSize: 13, fontWeight: '500', color: theme.colors.onSurface },
+  uploadTriggerSub: { fontSize: 11, color: theme.colors.onSurfaceVariant, marginTop: 2 },
+  uploadArrow: { fontSize: 20, color: theme.colors.onSurfaceVariant },
 
   // Progress banner (extracting / ready)
   banner: {
@@ -112,10 +112,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,
-    backgroundColor: COLORS.surface,
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 0.5,
-    borderColor: COLORS.border,
+    borderColor: theme.colors.outline,
     gap: 10,
   },
   iconWrap: {
@@ -129,20 +129,20 @@ const styles = StyleSheet.create({
   },
   pdfEmoji: { fontSize: 18 },
   bannerBody: { flex: 1, minWidth: 0 },
-  fileName: { fontSize: 13, fontWeight: '500', color: COLORS.text },
-  statusText: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
+  fileName: { fontSize: 13, fontWeight: '500', color: theme.colors.onSurface },
+  statusText: { fontSize: 11, color: theme.colors.onSurfaceVariant, marginTop: 2 },
   progressBar: {
     height: 3,
-    backgroundColor: COLORS.border,
+    backgroundColor: theme.colors.outline,
     borderRadius: 2,
     marginTop: 8,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: COLORS.gold,
+    backgroundColor: theme.colors.primary,
     borderRadius: 2,
   },
-  percentLabel: { fontSize: 11, color: COLORS.gold, fontWeight: '500', flexShrink: 0 },
-  replaceBtn: { fontSize: 12, color: COLORS.gold },
+  percentLabel: { fontSize: 11, color: theme.colors.primary, fontWeight: '500', flexShrink: 0 },
+  replaceBtn: { fontSize: 12, color: theme.colors.primary },
 });
