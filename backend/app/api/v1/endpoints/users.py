@@ -3,13 +3,11 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from io import BytesIO
 from PIL import Image
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.models.user import User
 from app.models.reading_session import ReadingSession
-from app.models.book import Book
 from app.models.user_book import UserBook, BookStatus
 from app.schemas.user import UserResponse, UserUpdate, UserStats
 from app.api.dependencies import get_db, get_current_user

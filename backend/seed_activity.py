@@ -2,7 +2,6 @@
 import uuid
 import random
 from datetime import datetime, timedelta, timezone
-from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.book import Book

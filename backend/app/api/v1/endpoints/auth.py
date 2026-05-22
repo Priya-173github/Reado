@@ -5,25 +5,38 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password, create_access_token, ALGORITHM
+from app.core.security import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    ALGORITHM,
+)
 from app.core.redis_client import get_redis_client
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
-from app.schemas.token import Token, RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
+from app.schemas.user import UserCreate
+from app.schemas.token import (
+    Token,
+    RefreshTokenRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    ChangePasswordRequest,
+)
 from app.api.dependencies import get_db, get_current_user, oauth2_scheme
 
 router = APIRouter()
+
 
 def create_refresh_token(user_id: str) -> str:
     """Generates a secure random refresh token and stores it in Redis."""
     refresh_token = secrets.token_urlsafe(32)
     redis_client = get_redis_client()
     redis_client.setex(
-        f"refresh_token:{user_id}", 
-        timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), 
-        refresh_token
+        f"refresh_token:{user_id}",
+        timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        refresh_token,
     )
     return refresh_token
+
 
 @router.post("/signup", response_model=Token, status_code=status.HTTP_201_CREATED)
 def signup(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -33,7 +46,7 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail="The user with this email already exists in the system.",
         )
-    
+
     # Hash password and create user
     hashed_password = get_password_hash(user_in.password)
     user = User(
@@ -55,6 +68,7 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
         "token_type": "bearer",
     }
 
+
 @router.post("/login", response_model=Token)
 def login(user_in: UserCreate, db: Session = Depends(get_db)):
     # Re-using UserCreate for simplicity, ideally we use OAuth2PasswordRequestForm
@@ -73,13 +87,22 @@ def login(user_in: UserCreate, db: Session = Depends(get_db)):
         "token_type": "bearer",
     }
 
+
 @router.post("/refresh", response_model=Token)
-def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def refresh_token(
+    request: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+):
     import jwt
+
     try:
         # Decode token even if expired to get user_id
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False}
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"verify_exp": False},
         )
         user_id = payload.get("sub")
     except Exception:
@@ -90,7 +113,7 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db), t
 
     redis_client = get_redis_client()
     stored_token = redis_client.get(f"refresh_token:{user_id}")
-    
+
     if not stored_token or stored_token != request.refresh_token:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -103,18 +126,22 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db), t
         "token_type": "bearer",
     }
 
+
 @router.post("/logout")
 def logout(current_user: User = Depends(get_current_user)):
     redis_client = get_redis_client()
     redis_client.delete(f"refresh_token:{current_user.id}")
     return {"message": "Successfully logged out"}
 
+
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         # Don't reveal if user exists
-        return {"message": "If that email is in our database, we will send an OTP to reset your password."}
+        return {
+            "message": "If that email is in our database, we will send an OTP to reset your password."
+        }
 
     otp = f"{random.randint(100000, 999999)}"
     redis_client = get_redis_client()
@@ -127,7 +154,10 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     print(f"Body: Your OTP is {otp}. It expires in 15 minutes.")
     print("---------------------")
 
-    return {"message": "If that email is in our database, we will send an OTP to reset your password."}
+    return {
+        "message": "If that email is in our database, we will send an OTP to reset your password."
+    }
+
 
 @router.post("/reset-password")
 def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -154,12 +184,15 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     return {"message": "Password updated successfully. Please log in again."}
 
 
-
 @router.post("/change-password")
-def change_password(request: ChangePasswordRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     if not verify_password(request.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect old password")
-    
+
     hashed_password = get_password_hash(request.new_password)
     current_user.hashed_password = hashed_password
     db.add(current_user)

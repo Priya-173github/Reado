@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -7,7 +7,7 @@ from sqlalchemy import desc
 from app.models.user import User
 from app.models.book import Book
 from app.models.user_book import UserBook, BookStatus
-from app.schemas.book import BookCreate, BookResponse
+from app.schemas.book import BookCreate
 from app.schemas.user_book import UserBookResponse
 from app.api.dependencies import get_db, get_current_user
 

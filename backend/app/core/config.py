@@ -17,9 +17,12 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     REDIS_URL: str = "redis://localhost:6379/0"
+    # REDIS_URL: str = "rediss://default:gQAAAAAAAZKSAAIgcDI4MmZkN2ZlYzE2ZjA0MjNiOGIwOWJkOGUzMGFjMzkxNA@sterling-marten-103058.upstash.io:6379"
 
     SENDGRID_API_KEY: str | None = None
     SENDGRID_FROM_EMAIL: str = "noreply@reado.com"
+    
+    GROQ_API_KEY: str
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
