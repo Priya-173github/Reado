@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  RefreshControl, 
-  TouchableOpacity, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  Alert,
   Image,
   StatusBar
 } from 'react-native';
@@ -66,20 +66,22 @@ export default function SessionHistoryScreen({ navigation }: any) {
   const handleDelete = async (id: string) => {
     Alert.alert('Delete Session', 'Are you sure you want to remove this reading session?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try {
-          await api.delete(`/sessions/${id}`);
-          setSessions(prev => prev.filter(s => s.id !== id));
-        } catch (error) {
-          console.error(error);
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await api.delete(`/sessions/${id}`);
+            setSessions(prev => prev.filter(s => s.session_id !== id));
+          } catch (error) {
+            console.error(error);
+          }
         }
-      }}
+      }
     ]);
   };
 
   const renderItem = ({ item }: any) => (
-    <SessionCard 
-      session={item} 
+    <SessionCard
+      session={item}
       onDelete={handleDelete}
       onEdit={(sess) => navigation.navigate('EditSession', { session: sess })}
       showActions={true}
@@ -99,21 +101,21 @@ export default function SessionHistoryScreen({ navigation }: any) {
       <View style={styles.dashboard}>
         {/* Stats Row */}
         <View style={styles.statsGrid}>
-          <StatCard 
-            label="STREAK" 
-            value={stats.current_streak_days} 
+          <StatCard
+            label="STREAK"
+            value={stats.current_streak_days}
             icon={<MaterialCommunityIcons name="fire" size={20} color="#FF6B6B" />}
             style={{ flex: 1 }}
           />
-          <StatCard 
-            label="PAGES" 
-            value={stats.total_pages_read} 
+          <StatCard
+            label="PAGES"
+            value={stats.total_pages_read}
             icon={<MaterialCommunityIcons name="book-open-page-variant" size={20} color={theme.colors.primary} />}
             style={{ flex: 1 }}
           />
-          <StatCard 
-            label="TIME" 
-            value={`${Math.round(stats.total_reading_time_minutes / 60)}h`} 
+          <StatCard
+            label="TIME"
+            value={`${Math.round(stats.total_reading_time_minutes / 60)}h`}
             icon={<MaterialCommunityIcons name="clock-outline" size={20} color="#4D96FF" />}
             style={{ flex: 1 }}
           />
@@ -127,14 +129,15 @@ export default function SessionHistoryScreen({ navigation }: any) {
               <View key={wIndex} style={styles.heatmapColumn}>
                 {week.map((day, dIndex) => {
                   let color = theme.colors.surfaceContainerHighest;
-                  if (day.count > 0) color = 'rgba(2, 211, 138, 0.3)';
-                  if (day.count > 2) color = 'rgba(2, 211, 138, 0.6)';
-                  if (day.count > 5) color = theme.colors.primary;
-                  
+                  const count = day?.count ?? 0;
+                  if (count > 0) color = 'rgba(2, 211, 138, 0.3)';
+                  if (count > 2) color = 'rgba(2, 211, 138, 0.6)';
+                  if (count > 5) color = theme.colors.primary;
+
                   return (
-                    <View 
-                      key={dIndex} 
-                      style={[styles.heatmapSquare, { backgroundColor: color }]} 
+                    <View
+                      key={dIndex}
+                      style={[styles.heatmapSquare, { backgroundColor: color }]}
                     />
                   );
                 })}
@@ -153,8 +156,8 @@ export default function SessionHistoryScreen({ navigation }: any) {
 
         <View style={styles.historyHeader}>
           <Text style={styles.sectionTitle}>History</Text>
-          <TouchableOpacity 
-            style={styles.datePickerBtn} 
+          <TouchableOpacity
+            style={styles.datePickerBtn}
             onPress={() => setShowDatePicker(true)}
           >
             <Text style={styles.dateText}>
@@ -205,9 +208,9 @@ export default function SessionHistoryScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: theme.colors.background 
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background
   },
   header: {
     paddingHorizontal: theme.spacing.container_margin,
@@ -220,7 +223,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -1.5,
   },
-  list: { 
+  list: {
     padding: theme.spacing.container_margin,
     paddingTop: 0,
     paddingBottom: 100,

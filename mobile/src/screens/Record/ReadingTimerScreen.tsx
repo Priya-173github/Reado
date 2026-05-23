@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  AppState, 
-  AppStateStatus, 
-  Modal, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  AppState,
+  AppStateStatus,
+  Modal,
   TextInput,
   StatusBar,
   Dimensions,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 import { queueOfflineSession } from '../../services/syncService';
 import api from '../../services/api';
@@ -48,18 +48,29 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
   const [notes, setNotes] = useState('');
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [quote, setQuote] = useState("Loading inspiration...");
+  const [dailyGoal, setDailyGoal] = useState<number>(0);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     fetchQuote();
+    fetchDailyGoal();
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => {
       subscription.remove();
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  const fetchDailyGoal = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('daily_page_goal');
+      if (stored) setDailyGoal(parseInt(stored, 10));
+    } catch {
+      // silently fail — progress bar just won't show
+    }
+  };
 
   const fetchQuote = async () => {
     try {
@@ -124,19 +135,14 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
     setShowSummary(true);
   };
 
-  const handleStop = () => {
-    setIsRunning(false);
-    setShowSummary(true);
-  };
-
   const handleSave = async () => {
     const pages = parseInt(pagesRead, 10) || 0;
-    
+
     if (pages <= 0) {
       Alert.alert('Invalid Input', 'Please enter at least 1 page read.');
       return;
     }
-    
+
     // Validation: user cant exceed no of pages more than total pages
     if (total_pages > 0 && (initial_current_page + pages) > total_pages) {
       Alert.alert(
@@ -176,21 +182,38 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
     }
   };
 
+  // ~250 words/page, ~200 wpm average reading speed → ~1.25 min/page → ~48 pages/hour
+  const ESTIMATED_PAGES_PER_HOUR = 48;
+
   const calculatePace = () => {
-    if (elapsedSeconds === 0) return 0;
-    const pages = parseInt(pagesRead, 10) || 0;
-    if (pages === 0) return 0;
-    return Math.round(pages / (elapsedSeconds / 60));
+    const pages = parseInt(pagesRead, 10);
+    if (elapsedSeconds === 0) return '--';
+
+    // After session ends and user has entered pages → use actual pace
+    if (!isNaN(pages) && pages > 0) {
+      const hours = elapsedSeconds / 3600;
+      return Math.round(pages / hours);
+    }
+
+    // During session → estimate based on average reading speed
+    return `~${ESTIMATED_PAGES_PER_HOUR}`;
   };
+
+  const getPagesLeft = () => {
+    if (total_pages <= 0) return '--';
+    const pages = parseInt(pagesRead, 10);
+    const pagesReadSoFar = isNaN(pages) ? 0 : pages;
+    return total_pages - initial_current_page - pagesReadSoFar;
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Top Header */}
+
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.closeButton} 
+        <TouchableOpacity
+          style={styles.closeButton}
           onPress={() => {
             if (isRunning) {
               Alert.alert(
@@ -214,7 +237,6 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Timer Section */}
       <View style={styles.timerContainer}>
         <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
         <View style={styles.bookInfo}>
@@ -226,23 +248,13 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
 
       <View style={styles.divider} />
 
-      {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <StatCard label="PAGES" value={pagesRead || "0"} />
-        <StatCard label="PACE" value={calculatePace()} unit="PPM" />
-        <StatCard label="GOAL" value="72%" hasIcon />
+        <StatCard label="PACE" value={calculatePace()} unit="PPH" />
+        <StatCard label="PAGES LEFT" value={getPagesLeft()} />
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressSection}>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '72%' }]} />
-        </View>
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressLabel}>SESSION START</Text>
-          <Text style={styles.progressLabel}>72% OF DAILY GOAL REACHED</Text>
-        </View>
-      </View>
+      <DailyProgressBar pagesRead={pagesRead} dailyGoal={dailyGoal} />
 
       {/* Quote Section */}
       <View style={styles.quoteSection}>
@@ -250,13 +262,13 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
           "{quote}"
         </Text>
       </View>
-      
+
       {/* Controls */}
       <View style={styles.controls}>
         {!startedAt ? (
           // Initial State: Big "START" Button
-          <TouchableOpacity 
-            style={styles.stravaButtonPrimary} 
+          <TouchableOpacity
+            style={styles.stravaButtonPrimary}
             onPress={handleStartPause}
             activeOpacity={0.8}
           >
@@ -265,8 +277,8 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
           </TouchableOpacity>
         ) : isRunning ? (
           // Running State: Big "PAUSE" Button
-          <TouchableOpacity 
-            style={styles.stravaButtonSecondary} 
+          <TouchableOpacity
+            style={styles.stravaButtonSecondary}
             onPress={handleStartPause}
             activeOpacity={0.8}
           >
@@ -276,16 +288,16 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
         ) : (
           // Paused State: "RESUME" and "FINISH" Buttons
           <View style={styles.pausedControls}>
-            <TouchableOpacity 
-              style={[styles.stravaButtonHalf, { backgroundColor: theme.colors.primary }]} 
+            <TouchableOpacity
+              style={[styles.stravaButtonHalf, { backgroundColor: theme.colors.primary }]}
               onPress={handleResume}
               activeOpacity={0.8}
             >
               <Text style={styles.stravaButtonTextPrimary}>RESUME</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.stravaButtonHalf, { backgroundColor: theme.colors.tertiary }]} 
+            <TouchableOpacity
+              style={[styles.stravaButtonHalf, { backgroundColor: theme.colors.tertiary }]}
               onPress={handleFinish}
               activeOpacity={0.8}
             >
@@ -318,7 +330,7 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
                 autoFocus
               />
             </View>
-            
+
             <View style={styles.field}>
               <Text style={styles.label}>NOTES (OPTIONAL)</Text>
               <TextInput
@@ -331,7 +343,7 @@ export default function ReadingTimerScreen({ route, navigation }: any) {
                 onChangeText={setNotes}
               />
             </View>
-            
+
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveBtnText}>SAVE SESSION</Text>
             </TouchableOpacity>
@@ -355,9 +367,31 @@ function StatCard({ label, value, unit, hasIcon }: any) {
   );
 }
 
+function DailyProgressBar({ pagesRead, dailyGoal }: { pagesRead: string; dailyGoal: number }) {
+  if (dailyGoal <= 0) return null;
+
+  const pages = parseInt(pagesRead, 10);
+  const pagesThisSession = isNaN(pages) ? 0 : pages;
+  const percent = Math.min(Math.round((pagesThisSession / dailyGoal) * 100), 100);
+
+  return (
+    <View style={styles.progressSection}>
+      <View style={styles.progressBarBg}>
+        <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
+      </View>
+      <View style={styles.progressLabels}>
+        <Text style={styles.progressLabel}>DAILY GOAL</Text>
+        <Text style={styles.progressLabel}>
+          {percent === 100 ? 'GOAL REACHED' : `${pagesThisSession} / ${dailyGoal} PAGES`}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.container_margin,
   },
@@ -481,7 +515,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     opacity: 0.8,
   },
-  controls: { 
+  controls: {
     paddingHorizontal: 20,
     marginTop: 24,
     paddingBottom: 40,
@@ -537,15 +571,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1.5,
   },
-  modalOverlay: { 
-    flex: 1, 
-    justifyContent: 'flex-end', 
-    backgroundColor: 'rgba(0,0,0,0.7)' 
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.7)'
   },
-  modalContent: { 
-    backgroundColor: theme.colors.surfaceContainerLow, 
-    padding: theme.spacing.lg, 
-    borderTopLeftRadius: 32, 
+  modalContent: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    padding: theme.spacing.lg,
+    borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     borderWidth: 1,
     borderColor: theme.colors.outlineVariant,
@@ -556,7 +590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },
-  modalTitle: { 
+  modalTitle: {
     ...theme.typography.h2,
     color: theme.colors.onSurface,
     fontWeight: '900',
@@ -569,29 +603,29 @@ const styles = StyleSheet.create({
     color: theme.colors.onSurfaceVariant,
     marginBottom: 8,
   },
-  input: { 
+  input: {
     backgroundColor: theme.colors.surfaceContainer,
-    borderWidth: 1, 
-    borderColor: theme.colors.outlineVariant, 
-    borderRadius: theme.borderRadius.lg, 
-    padding: theme.spacing.md, 
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
     fontSize: 16,
     color: theme.colors.onSurface,
   },
-  textArea: { 
-    height: 100, 
-    textAlignVertical: 'top' 
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top'
   },
-  saveBtn: { 
-    backgroundColor: theme.colors.primary, 
-    paddingVertical: 18, 
-    borderRadius: theme.borderRadius.xl, 
-    alignItems: 'center', 
+  saveBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 18,
+    borderRadius: theme.borderRadius.xl,
+    alignItems: 'center',
     marginTop: theme.spacing.md,
   },
-  saveBtnText: { 
+  saveBtnText: {
     ...theme.typography.labelCaps,
-    color: theme.colors.onPrimary, 
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '900',
   },

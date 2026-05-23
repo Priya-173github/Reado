@@ -83,8 +83,23 @@ export default function AddBookScreen() {
   };
 
   const handleStartNewBook = async () => {
-    if (!newBookTitle.trim() || !newBookAuthor.trim() || !newBookTotalPages.trim()) {
-      Alert.alert('Error', 'Please enter book title, author and total pages');
+    if (!newBookTitle.trim()) {
+      Alert.alert('Missing Title', 'Please enter a book title.');
+      return;
+    }
+
+    if (!newBookAuthor.trim()) {
+      Alert.alert('Missing Author', 'Please enter the author name.');
+      return;
+    }
+
+    const totalPages = parseInt(newBookTotalPages, 10);
+
+    if (!totalPages || totalPages <= 0) {
+      Alert.alert(
+        'Invalid Total Pages',
+        'Please enter a valid number of pages.'
+      );
       return;
     }
 

@@ -59,7 +59,7 @@ export default function SessionStarterScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Start Reading</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
@@ -67,8 +67,8 @@ export default function SessionStarterScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.content} 
+      <ScrollView
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
@@ -77,7 +77,7 @@ export default function SessionStarterScreen() {
         {/* New Book Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>NEW SESSION</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.newBookButton}
             onPress={() => navigation.navigate('AddBook')}
           >
@@ -100,21 +100,21 @@ export default function SessionStarterScreen() {
           ) : books.length > 0 ? (
             books.map((item) => (
               <View key={item.id} style={styles.bookTile}>
-                <Image 
-                  source={{ uri: item.book.cover_url || 'https://via.placeholder.com/150x220?text=No+Cover' }} 
-                  style={styles.bookCover} 
+                <Image
+                  source={{ uri: item.book.cover_url || 'https://via.placeholder.com/150x220?text=No+Cover' }}
+                  style={styles.bookCover}
                 />
                 <View style={styles.bookInfo}>
                   <Text style={styles.bookTitle} numberOfLines={1}>{item.book.title}</Text>
                   <Text style={styles.bookAuthor} numberOfLines={1}>{item.book.author}</Text>
                   <View style={styles.progressRow}>
                     <View style={styles.progressBarBg}>
-                      <View style={[styles.progressBarFill, { width: `${item.progress_percentage || 0}%` }]} /> 
+                      <View style={[styles.progressBarFill, { width: `${item.progress_percentage || 0}%` }]} />
                     </View>
                     <Text style={styles.progressText}>{item.progress_percentage || 0}%</Text>
                   </View>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.continueButton}
                   onPress={() => handleContinueBook(item)}
                 >
